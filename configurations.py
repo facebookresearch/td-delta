@@ -42,33 +42,33 @@ while cur_horizon >= 4:
   horizons = [cur_horizon] + horizons
 
 
-#            gamma,                      name,      algo,  gae,   dg,   capped, gae_v, sum_v
+#            gamma,                      name,      algo,  gae,   dg,   capped, sum_v
 GAMMAS = [
-          ([final_gamma],           'Baseline',     'ppo', True,  False, False,  True, False),
-          ([final_gamma],           'Baseline',     'ppo', True,  False, False,  True, True),
+          ([final_gamma],           'Baseline',     'ppo', True,  False, False, False),
+          ([final_gamma],           'Baseline',     'ppo', True,  False, False, True),
 
-          (gammas,                  'DeltaGamma',   'ppo', True,  True,  False,  True, False),
+          (gammas,                  'DeltaGamma',   'ppo', True,  True,  False, False),
           
-          ([gammas[0], gammas[-1]], 'DeltaGamma3',  'ppo', True,  True,  False,  True, False),
-          ([gammas[2], gammas[-1]], 'DeltaGamma12', 'ppo', True,  True,  False,  True, False), 
+          ([gammas[0], gammas[-1]], 'DeltaGamma3',  'ppo', True,  True,  False, False),
+          ([gammas[2], gammas[-1]], 'DeltaGamma12', 'ppo', True,  True,  False, False), 
 
-          ([gammas[0], gammas[-1]], 'DeltaGamma3',  'ppo', True,  True,  True,  True, False),
-          ([gammas[2], gammas[-1]], 'DeltaGamma12', 'ppo', True,  True,  True,  True, False),       
+          ([gammas[0], gammas[-1]], 'DeltaGamma3',  'ppo', True,  True,  True,  False),
+          ([gammas[2], gammas[-1]], 'DeltaGamma12', 'ppo', True,  True,  True,  False),       
           
-          (gammas,                  'DeltaGamma',   'ppo', True,  True,  True,   True, False),
+          (gammas,                  'DeltaGamma',   'ppo', True,  True,  True,  False),
           ]
 
 RUN_ID = []
 
 for seed in SEEDS:
     for game in GAMES:
-        for (gamma, name, ppo, gae, delta_gamma, capped_bias, gae_value, sum_values) in GAMMAS:
-            RUN_ID.append((seed, game, ppo, gae, gamma, name, delta_gamma, capped_bias, gae_value, sum_values))
+        for (gamma, name, ppo, gae, delta_gamma, capped_bias, sum_values) in GAMMAS:
+            RUN_ID.append((seed, game, ppo, gae, gamma, name, delta_gamma, capped_bias, sum_values))
 
 
 def load_params(args):
     args.seed, args.env_name, args.algo, args.use_gae, args.gammas, \
-    args.name, args.use_delta_gamma, args.use_capped_bias, args.use_gae_for_value, args.sum_values = RUN_ID[args.run_index]
+    args.name, args.use_delta_gamma, args.use_capped_bias, args.sum_values = RUN_ID[args.run_index]
 
     if args.use_delta_gamma: # DG
       args.num_values = len(args.gammas)
@@ -79,9 +79,8 @@ def load_params(args):
 
     gae_string = 'Gae' if args.use_gae else ''
     capped_bias_string = 'CappedBias' if args.use_capped_bias else ''
-    gae_for_value_string = 'GaeValue' if args.use_gae_for_value else 'RegValue'
     summed_value_string = '+' if args.sum_values else ''
-    args.name = args.algo + args.name + gae_string + capped_bias_string + gae_for_value_string + summed_value_string
+    args.name = args.algo + args.name + gae_string + capped_bias_string + summed_value_string
 
     args.log_dir = args.log_dir + args.env_name + '_' + str(args.seed) + '_' + args.name
     args.save_dir = args.log_dir

@@ -113,7 +113,7 @@ def main():
                         envs.observation_space.shape, envs.action_space,
                         actor_critic.recurrent_hidden_state_size, tau=args.tau,
                         gammas=args.gammas, use_delta_gamma=args.use_delta_gamma, 
-                        use_capped_bias=args.use_capped_bias, use_gae_for_value=args.use_gae_for_value)
+                        use_capped_bias=args.use_capped_bias)
 
     obs = envs.reset()
     rollouts.obs[0].copy_(obs)

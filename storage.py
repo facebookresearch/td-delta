@@ -16,7 +16,7 @@ def _flatten_helper(T, N, _tensor):
 
 class RolloutStorage(object):
     def __init__(self, num_steps, num_processes, obs_shape, action_space, recurrent_hidden_state_size, 
-        tau=None, gammas=None, use_delta_gamma=False, use_capped_bias=False, use_gae_for_value=True):
+        tau=None, gammas=None, use_delta_gamma=False, use_capped_bias=False):
         assert gammas is not None and tau is not None
 
         self.obs = torch.zeros(num_steps + 1, num_processes, *obs_shape)
@@ -58,8 +58,6 @@ class RolloutStorage(object):
         self.horizons = horizons
         self.starting_taus = taus
         self.taus = torch.from_numpy(np.array(taus)).type(self.rewards.type()).unsqueeze(0)
-
-        self.use_gae_for_value = use_gae_for_value
 
         if self.use_delta_gamma:
             self.delta_rewards = torch.zeros(num_steps, num_processes, len(gammas)-1)
@@ -124,10 +122,6 @@ class RolloutStorage(object):
         else:
             # store real rewards in every value function slot
             self.rewards = self.rewards[:, :, 0].unsqueeze(-1).expand_as(self.rewards)
-            # add zero rewards for time T+1 (this is for convenience - not used)
-            rewards_zero_padded = torch.cat([self.rewards, self.zeros.unsqueeze(0)], dim=0)
-            # compute V_(gamma-1) for each horizon - drop last horizon (don't need it)
-            next_value_summed = torch.cumsum(next_value, dim=-1)[:, :-1]
 
         # policy_returns will store return to be used by policy
         # returns will store return for each value function
@@ -136,26 +130,18 @@ class RolloutStorage(object):
         gae = 0
         gae_value = 0
         for step in reversed(range(self.rewards.size(0))):
-            # compute returns for the value function
-            if self.use_gae_for_value:
-                # only use gae for value if you used it for the policy - wouldnt really make sense otherwise
-                assert use_gae
+            if use_gae:
                 delta_value = self.rewards[step] + self.gammas.expand_as(self.rewards[step]) * self.value_preds[step + 1] * self.masks[step + 1] - self.value_preds[step]
                 gae_value = delta_value + self.gammas.expand_as(self.rewards[step]) * self.taus.expand_as(self.rewards[step]) * self.masks[step + 1] * gae_value
                 self.returns[step] = gae_value + self.value_preds[step]
 
-            else: # regular update
-                # standard N-step return
-                self.returns[step] = self.returns[step + 1] * \
-                    self.gammas.expand_as(next_value) * self.masks[step + 1].expand_as(self.rewards[step]) + self.rewards[step]
-
-            # compute returns for the policy
-            if use_gae:
                 delta = self.rewards[step, :, 0].unsqueeze(-1) + gamma * self.value_preds[step + 1].sum(-1).unsqueeze(-1) * self.masks[step + 1] - self.value_preds[step].sum(-1).unsqueeze(-1)
                 gae = delta + gamma * tau * self.masks[step + 1] * gae
                 self.policy_returns[step] = gae + self.value_preds[step].sum(-1).unsqueeze(-1) 
 
             else:
+                self.returns[step] = self.returns[step + 1] * \
+                    self.gammas.expand_as(next_value) * self.masks[step + 1].expand_as(self.rewards[step]) + self.rewards[step]
                 self.policy_returns[step] = self.policy_returns[step + 1] * \
                     gamma * self.masks[step + 1] + self.rewards[step, :, 0].unsqueeze(-1)
 

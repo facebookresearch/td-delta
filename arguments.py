@@ -74,8 +74,6 @@ def get_args():
 
     parser.add_argument('--use-delta-gamma', action='store_true', default=False,
                         help='use delta gamma update')
-    parser.add_argument('--use-gae-for-value', action='store_false', default=True,
-                        help='use gae also for value function')
     parser.add_argument('--use-capped-bias', action='store_true', default=False,
                         help='using capped bias version')
     parser.add_argument('--run-index', type=int, default=None,
