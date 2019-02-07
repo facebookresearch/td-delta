@@ -1,5 +1,17 @@
 # Separating Value Functions Across Time-Scales
 
+Read the full paper: https://arxiv.org/abs/1902.01883 
+
+```
+@article{separatingvalues2019,
+  title={Separating value functions across time-scales},
+  author={Romoff, Joshua and Henderson, Peter and Touati, Ahmed and Olliver, Yann and Brunskill, Emma and Pineau, Joelle},
+  journal={arXiv preprint arXiv:1902.01883},
+  year={2019}
+}
+
+```
+
 We based our code off of [ikostrikov's pytorch-rl repo](https://github.com/ikostrikov/pytorch-a2c-ppo-acktr). 
 
 ```
