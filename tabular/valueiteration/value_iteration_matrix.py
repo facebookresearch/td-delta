@@ -13,6 +13,7 @@ class ValueIteration(object):
 
     def __init__(self, mdp, gauss_seidel=False):
         self.mdp = mdp
+        print(self.mdp.R)
         self.gauss_seidel = gauss_seidel
 
     def run(self, theta = 0.001, gamma=.9, optimal_value=None):
@@ -65,6 +66,7 @@ class ValueIteration(object):
         print("Converged in %d iterations (%d sweeps)" % (iteration, sweeps))
 
         pi = self.get_policy(V)
+        print(V)
 
         return pi, V, vs
 

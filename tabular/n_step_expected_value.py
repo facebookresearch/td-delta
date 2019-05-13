@@ -32,10 +32,8 @@ def n_step_expected_value(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsilon = 
     behaviour_policy = random_behaviour_policy
     behaviour_policy_probs = random_behaviour_policy_probs
     mdp.seed(seed)
-    pbar = tqdm(total=max_episode)
+    # pbar = tqdm(total=max_episode)
     V = np.array([0 for j in range(mdp.observation_space.n)], dtype=float)
-    print("VSHAPE")
-    print(V.shape)
     # gamma_0=0 then gamma_{z+1} = (gamma_z +1) /2
 
     n_episode = 0
@@ -57,20 +55,20 @@ def n_step_expected_value(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsilon = 
 
         # With prob epsilon, pick a random action
 
-        stored_states[0] = mdp.reset()
-        stored_actions[0] = behaviour_policy(V, stored_states[0], mdp.action_space.n)
+        next_state = mdp.reset()
+        stored_actions[0] = behaviour_policy(V, next_state, mdp.action_space.n)
         reward_for_episode = 0
 
         while tau < (T-1):
             t += 1
             if t < T:
                 # take action A_t
-
+                cur_state = next_state
                 # Observe and store the next reward R_{t+1} and next state S_{t+1}
                 next_state, reward, done, info = mdp.step(stored_actions[t % n])
 
-                stored_rewards[(t+1) % n] = reward
-                stored_states[(t+1) % n] = next_state
+                stored_rewards[(t) % n] = reward
+                stored_states[(t) % n ] = cur_state
 
 
                 total_reward += reward
@@ -82,12 +80,11 @@ def n_step_expected_value(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsilon = 
                     stored_actions[(t+1) % n] = behaviour_policy(V, next_state, mdp.action_space.n)
 
             tau = t - n + 1
-            if tau >= 0:
-                trace = np.sum([gamma**(i-tau-1) * (stored_rewards[i%n]) for i in range(tau+1, min(tau+n-1, T-1)+1)])
+            if tau >= 0 and not done:
+                trace = np.sum([gamma**(i-tau) * (stored_rewards[i%n]) for i in range(tau, min(tau+n, T))])
                     
-                # this should have the other estimator sum at the end
                 if tau + n < T:
-                    difference = ( gamma ** n )  * V[stored_states[(tau+n) % n]]
+                    difference = ( gamma ** n )  * V[next_state]
                 else:
                     difference = 0.0
 
@@ -95,16 +92,16 @@ def n_step_expected_value(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsilon = 
                 a_tau = stored_actions[tau %  n]
 
                 V[s_tau] += alpha * ((trace + difference) - V[s_tau])
+                Vs.append(copy.deepcopy(V))
 
         if reward_for_episode > max_reward:
             max_reward = reward_for_episode
 
         rewards_per_episode.append(reward_for_episode)
         V_variances.append(np.var(V))
-        Vs.append(copy.deepcopy(V))
 
         n_episode += 1
-        pbar.update(1)
+        # pbar.update(1)
 
-    pbar.close()
+    # pbar.close()
     return Vs, total_reward/max_episode, max_reward, rewards_per_episode, V_variances

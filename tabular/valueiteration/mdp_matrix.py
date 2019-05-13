@@ -33,12 +33,11 @@ class RingWorld(MDP):
 
     def __init__(self):
         S = 5
-        A = 2
+        A = 1
         act_list = [1]
         R = np.zeros((5), dtype=float)
         # Because we're transitioning into the next, we have an off by one unless we addone
-        R[int(S/2)-1] = 1.
-        R[int(S/2)]  = -1.
+        R = [0, 0.95, -.9, -0.05, 0]
         T = np.zeros((S, A, S))
         for s in range(S):
             T[s][0][(s+1)%S] = .95   

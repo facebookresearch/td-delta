@@ -7,10 +7,10 @@
 
 
 GAMES = [
-         'Frostbite',
          'Alien',
          'Amidar',
          'BankHeist',
+         'Frostbite',
          'Hero',
          'MsPacman',
          'Qbert',
@@ -42,33 +42,34 @@ while cur_horizon >= 4:
   horizons = [cur_horizon] + horizons
 
 
-#            gamma,                      name,      algo,  gae,   dg,   capped, sum_v
+#            gamma,                      name,      algo,  gae,   dg,   capped, sum_v, double_capped
 GAMMAS = [
-          ([final_gamma],           'Baseline',     'ppo', True,  False, False, False),
-          ([final_gamma],           'Baseline',     'ppo', True,  False, False, True),
+          # ([final_gamma],           'Baseline',     'ppo', True,  False, False, False, False),
+          # ([final_gamma],           'Baseline',     'ppo', True,  False, False, True, False),
 
-          (gammas,                  'DeltaGamma',   'ppo', True,  True,  False, False),
+          # (gammas,                  'DeltaGamma',   'ppo', True,  True,  False, False, False),
           
-          ([gammas[0], gammas[-1]], 'DeltaGamma3',  'ppo', True,  True,  False, False),
-          ([gammas[2], gammas[-1]], 'DeltaGamma12', 'ppo', True,  True,  False, False), 
+          # ([gammas[0], gammas[-1]], 'DeltaGamma3',  'ppo', True,  True,  False, False, False),
+          # ([gammas[2], gammas[-1]], 'DeltaGamma12', 'ppo', True,  True,  False, False, False), 
 
-          ([gammas[0], gammas[-1]], 'DeltaGamma3',  'ppo', True,  True,  True,  False),
-          ([gammas[2], gammas[-1]], 'DeltaGamma12', 'ppo', True,  True,  True,  False),       
+          # ([gammas[0], gammas[-1]], 'DeltaGamma3',  'ppo', True,  True,  True,  False, False),
+          # ([gammas[2], gammas[-1]], 'DeltaGamma12', 'ppo', True,  True,  True,  False, False),       
           
-          (gammas,                  'DeltaGamma',   'ppo', True,  True,  True,  False),
+          # (gammas,                  'DeltaGamma',   'ppo', True,  True,  True,  False, False),
+          (gammas,                  'DeltaGamma',   'ppo', True,  True,  False,  False, True),
           ]
 
 RUN_ID = []
 
-for seed in SEEDS:
-    for game in GAMES:
-        for (gamma, name, ppo, gae, delta_gamma, capped_bias, sum_values) in GAMMAS:
-            RUN_ID.append((seed, game, ppo, gae, gamma, name, delta_gamma, capped_bias, sum_values))
+for game in GAMES:
+    for seed in SEEDS:
+        for (gamma, name, ppo, gae, delta_gamma, capped_bias, sum_values, double_capped) in GAMMAS:
+            RUN_ID.append((seed, game, ppo, gae, gamma, name, delta_gamma, capped_bias, sum_values, double_capped))
 
 
 def load_params(args):
     args.seed, args.env_name, args.algo, args.use_gae, args.gammas, \
-    args.name, args.use_delta_gamma, args.use_capped_bias, args.sum_values = RUN_ID[args.run_index]
+    args.name, args.use_delta_gamma, args.use_capped_bias, args.sum_values, args.use_double_capped = RUN_ID[args.run_index]
 
     if args.use_delta_gamma: # DG
       args.num_values = len(args.gammas)
@@ -80,7 +81,8 @@ def load_params(args):
     gae_string = 'Gae' if args.use_gae else ''
     capped_bias_string = 'CappedBias' if args.use_capped_bias else ''
     summed_value_string = '+' if args.sum_values else ''
-    args.name = args.algo + args.name + gae_string + capped_bias_string + summed_value_string
+    double_capped_string = 'DoubleCapped' if args.use_double_capped else ''
+    args.name = args.algo + args.name + gae_string + capped_bias_string + summed_value_string + double_capped_string
 
     args.log_dir = args.log_dir + args.env_name + '_' + str(args.seed) + '_' + args.name
     args.save_dir = args.log_dir

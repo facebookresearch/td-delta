@@ -33,7 +33,7 @@ def random_behaviour_policy_probs(Q, s, nA, epsilon=.3):
 def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsilon = 0.1, n = 100, seed=0, schedule_ks=True, schedule_alpha=False):
     behaviour_policy = random_behaviour_policy
     behaviour_policy_probs = random_behaviour_policy_probs
-    pbar = tqdm(total=max_episode)
+    # pbar = tqdm(total=max_episode)
     mdp.seed(seed)
 
     # gamma_0=0 then gamma_{z+1} = (gamma_z +1) /2
@@ -42,7 +42,7 @@ def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsi
     current_gamma = 0.0
     while current_gamma < gamma:
         if schedule_ks:
-            next_k = math.ceil(1./(1.-current_gamma)) + 1 #(need plus one otherwise we add bias/error)
+            next_k = math.ceil(1./(1.-current_gamma)) #(need plus one otherwise we add bias/error)
         else:
             next_k = n
         if schedule_alpha:
@@ -57,10 +57,7 @@ def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsi
     # Q is now broken up into the deltas
     alpha_gamma_ks.append((alpha, gamma, n))
 
-    print(alpha_gamma_ks)
     V = np.array([[0 for j in range(mdp.observation_space.n)] for z in range(len(alpha_gamma_ks))] , dtype=float)
-    print("VSHAPE")
-    print(V.shape)
 
     n_episode = 0
     rewards_per_episode = []
@@ -79,20 +76,20 @@ def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsi
         stored_rewards = {}
         stored_states = {}
         # With prob epsilon, pick a random action
-        stored_states[0] = mdp.reset()
-        stored_actions[0] = behaviour_policy(V, stored_states[0], mdp.action_space.n)
+        next_state = mdp.reset()
+        stored_actions[0] = behaviour_policy(V, next_state, mdp.action_space.n)
         reward_for_episode = 0
 
         while tau < (T-1):
             t += 1
             if t < T:
                 # take action A_t
-
+                cur_state = next_state
                 # Observe and store the next reward R_{t+1} and next state S_{t+1}
                 next_state, reward, done, info = mdp.step(stored_actions[t % n])
 
-                stored_rewards[(t+1) % n] = reward
-                stored_states[(t+1) % n] = next_state
+                stored_rewards[(t) % n] = reward
+                stored_states[(t) % n] = cur_state
 
 
                 total_reward += reward
@@ -104,7 +101,7 @@ def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsi
                     stored_actions[(t+1) % n] = behaviour_policy(V, next_state, mdp.action_space.n)
 
             tau = t - n + 1
-            if tau >= 0:
+            if tau >= 0 and not done:
                 # TODO: sum passed to policies instead of raw Q list
             
                 G = []
@@ -113,12 +110,12 @@ def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsi
                     #TODO: there may be an off by one in the trace
                     if j==0:
                         # normal
-                        trace = np.sum([gamma**(i-tau-1) * (stored_rewards[i%n]) for i in range(tau+1, min(tau+k_step, T))])
+                        trace = np.sum([gamma**(i-tau) * (stored_rewards[i%n]) for i in range(tau, min(tau+k_step, T))])
                     else:
                         # differential
                         lower_gamma = alpha_gamma_ks[j-1][1]
                         # TODO: is there off by one here?
-                        trace = np.sum([(gamma**(i-tau-1) - lower_gamma**(i-tau-1)) * (stored_rewards[i%n]) for i in range(tau+2, min(tau+k_step, T))])
+                        trace = np.sum([(gamma**(i-tau) - lower_gamma**(i-tau)) * (stored_rewards[i%n]) for i in range(tau+1, min(tau+k_step, T))])
                     G.append(trace)
 
                     
@@ -126,13 +123,14 @@ def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsi
                 for j in range(len(alpha_gamma_ks)):
                     alpha, gamma, k_step = alpha_gamma_ks[j]
                     if tau + k_step < T:
+                        bootstrap_state = stored_states[(tau + k_step) % n] if k_step < n else next_state
                         if j == 0:
-                            difference = ( gamma ** k_step )  * V[j][stored_states[(tau+k_step) % n]]
+                            difference = ( gamma ** k_step )  * V[j][bootstrap_state]
                         else:
                             lower_gamma = alpha_gamma_ks[j-1][1]
                             # TODO: do we need importance sampling per differential function
-                            difference = ( gamma ** k_step ) * V[j][stored_states[(tau+k_step) % n]] \
-                                + ( gamma ** k_step - lower_gamma**k_step) * np.sum(V[:j], axis=0)[stored_states[(tau+k_step) % n]]
+                            difference = ( gamma ** k_step ) * V[j][bootstrap_state] \
+                                + ( gamma ** k_step - lower_gamma**k_step) * np.sum(V[:j], axis=0)[bootstrap_state]
                         G[j] = G[j] +  difference
 
                 s_tau = stored_states[tau % n]
@@ -140,6 +138,7 @@ def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsi
 
                 for l in range(len(G)):
                     V[l][s_tau] += alpha_gamma_ks[l][0] * (G[l]- V[l][s_tau])
+                Vs.append(copy.deepcopy(np.sum(V, axis=0)))
 
         if reward_for_episode > max_reward:
             max_reward = reward_for_episode
@@ -147,9 +146,9 @@ def n_step_expected_value_delta(mdp, max_episode, alpha = 0.1, gamma = 0.9, epsi
         rewards_per_episode.append(reward_for_episode)
         # TODO: the variance doesn't make sense in this context
         V_variances.append(np.var(np.sum(V, axis=0)))
-        Vs.append(copy.deepcopy(np.sum(V, axis=0)))
+        
         n_episode += 1
-        pbar.update(1)
+        # pbar.update(1)
 
-    pbar.close()
+    # pbar.close()
     return Vs, total_reward/max_episode, max_reward, rewards_per_episode, V_variances

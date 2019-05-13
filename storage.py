@@ -16,7 +16,7 @@ def _flatten_helper(T, N, _tensor):
 
 class RolloutStorage(object):
     def __init__(self, num_steps, num_processes, obs_shape, action_space, recurrent_hidden_state_size, 
-        tau=None, gammas=None, use_delta_gamma=False, use_capped_bias=False):
+        tau=None, gammas=None, use_delta_gamma=False, use_capped_bias=False, use_double_capped=False):
         assert gammas is not None and tau is not None
 
         self.obs = torch.zeros(num_steps + 1, num_processes, *obs_shape)
@@ -41,6 +41,7 @@ class RolloutStorage(object):
 
         self.use_delta_gamma = use_delta_gamma
         self.use_capped_bias = use_capped_bias
+        self.use_double_capped = use_double_capped
         self.gamma_list = gammas
         self.gammas = torch.from_numpy(np.array(gammas)).type(self.rewards.type()).unsqueeze(0)
 
@@ -49,14 +50,12 @@ class RolloutStorage(object):
         self.unbiased_taus = [(tau * gammas[-1]) / g for g in gammas]
 
         if self.use_capped_bias:
-            horizons = [int(np.ceil((1/(1-g)))) for g in gammas]
             taus = [min(1.0, (tau * gammas[-1]) / g) for g in gammas]
+        elif self.use_double_capped:
+            taus = [min(((1 + g) / 2 * g) - 0.01, (tau * gammas[-1]) / g) for g in gammas]
         else:
-            horizons = [int(np.ceil((1/(1-gammas[-1])))) for _ in gammas]
             taus = self.unbiased_taus
 
-        self.horizons = horizons
-        self.starting_taus = taus
         self.taus = torch.from_numpy(np.array(taus)).type(self.rewards.type()).unsqueeze(0)
 
         if self.use_delta_gamma:

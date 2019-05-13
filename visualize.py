@@ -76,13 +76,13 @@ def load_data(indir, smooth, bin_size):
             f.readline()
             for line in f:
                 tmp = line.split(',')
-                t_time = float(tmp[2])
                 try:
                     float(tmp[0])
+                    float(tmp[2])
                 except Exception:
                     continue
 
-                tmp = [t_time, int(tmp[1]), float(tmp[0])]
+                tmp = [float(tmp[2]), int(tmp[1]), float(tmp[0])]
                 datas.append(tmp)
 
     datas = sorted(datas, key=lambda d_entry: d_entry[0])

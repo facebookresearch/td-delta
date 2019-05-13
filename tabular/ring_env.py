@@ -36,7 +36,7 @@ class NRingEnv(gym.Env):
         self.observation_space = spaces.Discrete(self.n)
         self.count = 0
         self.seed()
-        self.max_count = 500
+        self.max_count = 6000
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)

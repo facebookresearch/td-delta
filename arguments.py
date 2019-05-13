@@ -76,6 +76,8 @@ def get_args():
                         help='use delta gamma update')
     parser.add_argument('--use-capped-bias', action='store_true', default=False,
                         help='using capped bias version')
+    parser.add_argument('--use-double-capped', action='store_true', default=False,
+                        help='using cap lambda based on double horizon theory')
     parser.add_argument('--run-index', type=int, default=None,
                         help='run index to use from configuration file (default: None)')
     parser.add_argument('--num-values', type=int, default=1,

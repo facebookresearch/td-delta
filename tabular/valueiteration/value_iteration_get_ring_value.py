@@ -22,7 +22,7 @@ gammas = [.75, .875, .9375, .96875, .984375, .992, .996]
 
 for gamma in gammas:
     vl = ValueIteration(gw)
-    optimal_policy, optimal_value, _  = vl.run()
+    optimal_policy, optimal_value, _  = vl.run(gamma=gamma)
     PRECOMPUTED_VALS[gamma]  = optimal_value
 
 with open('precomputed_vals.pickle', 'wb') as handle:
